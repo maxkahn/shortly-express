@@ -3,6 +3,7 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var session = require("express-session");
+var bcrypt = require('bcrypt-nodejs');
 
 
 var db = require('./app/config');
@@ -61,6 +62,12 @@ app.get("/login", function(req, res){
   res.render("login");
 });
 
+app.get("/logout", function(req, res){
+  console.log(">>>>>>>>>>LOGGED OFF!!!!!!!!!!!!!");
+  req.session.destroy()
+  res.render("login");
+});
+
 app.get("/signup", function(req, res){
   res.render("signup");
 });
@@ -70,6 +77,11 @@ app.post("/login", function(req, res){
   console.log("reached POST login");
   var username = req.body.username;
   var password = req.body.password;
+  //fetch salt out
+  //bcrypt using salt and provided password to get hash
+  //compare hash
+  var salt;
+  
 
   new User({
     username: username,
@@ -98,8 +110,10 @@ app.post("/signup", function(req, res){
   console.log("reached POST signup");
   var username = req.body.username;
   var password = req.body.password;
+  var salt = bcrypt.genSaltSync(10);
+  var hash = bcrypt.hashSync(password, salt);
 
-  Users.create({username: username, password: password}).then(function(){
+  Users.create({username: username, password: hash, salt: salt}).then(function(){
     res.redirect("/login");
   });
 });
