@@ -2,6 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var session = require("express-session");
 
 
 var db = require('./app/config');
@@ -22,22 +23,67 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+// Auth MiddleWare
+app.use(session({secret: "false"}));
 
-app.get('/', 
-function(req, res) {
+var restrict = function(request, res, next){
+  console.log(">>>>>>>>>> request.session",request.session)
+  if(request.session.user){
+    // console.log("Session ID: ", request.sessionID);
+    console.log(">>>>>>>>>>IN IF BLOCK Restrict");
+    next();
+  } else {
+    console.log(">>>>>>>>>>IN ELSE BLOCK Restrict");
+    //console.log(">>>>>>>> ELSE response", res)
+    request.session.error = "No Valid Credentials Provided";
+    res.redirect('/login');
+    next();
+  }
+};
+
+app.get('/', restrict, function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
-function(req, res) {
+app.get('/create', restrict, function(req, res) {
   res.render('index');
 });
 
-app.get('/links', 
-function(req, res) {
+app.get('/links', restrict, function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
+});
+
+app.get("/login", function(req, res){
+  console.log("reached GET login");
+  res.render("login");
+});
+
+//Auth Login
+app.post("/login", function(req, res){
+  console.log("reached POST login");
+  var username = req.body.username;
+  var password = req.body.password;
+
+  new User({
+    username: username,
+    password: password
+  }).fetch().then(function(found) {
+    if (found) {
+      console.log(">>>>>>FOUND USER")
+      req.session.regenerate(function(){
+        req.session.user = username;
+        //TODO: index as placeholder, we'll send user somewhere else
+        res.redirect('/');
+      });
+      
+    }
+    else {
+      res.redirect('/login');
+    }
+  });
+
 });
 
 app.post('/links', 

@@ -13,7 +13,7 @@ var Link = require('../app/models/link');
 // Remove the 'x' from beforeEach block when working on
 // authentication tests.
 /************************************************************/
-var xbeforeEach = function(){};
+var beforeEach = function(){};
 /************************************************************/
 
 
@@ -61,9 +61,10 @@ describe('', function() {
 
   describe('Link creation:', function(){
 
+    // var requestWithSession = request.defaults({jar: true});
     var requestWithSession = request.defaults({jar: true});
 
-    xbeforeEach(function(done){
+    beforeEach(function(done){
       // create a user that we can then log-in with
       new User({
           'username': 'Phillip',
@@ -114,6 +115,7 @@ describe('', function() {
 
       it('Responds with the short code', function(done) {
         requestWithSession(options, function(error, res, body) {
+
           expect(res.body.url).to.equal('http://roflzoo.com/');
           expect(res.body.code).to.not.be.null;
           done();
@@ -176,11 +178,23 @@ describe('', function() {
           }
         };
 
-        requestWithSession(options, function(error, res, body) {
+          link = new Link({
+          url: 'http://roflzoo.com/',
+          title: 'Funny pictures of animals, funny dog pictures',
+          base_url: 'http://127.0.0.1:4568'
+        });
+        link.save().then(function(){
+          // done();
+          requestWithSession(options, function(error, res, body) {
           var code = res.body.code;
+
+          console.log(">>>>>>>>>>>>>>>",link);
           expect(code).to.equal(link.get('code'));
           done();
         });
+        });
+
+        
       });
 
       it('Shortcode redirects to correct url', function(done) {
@@ -197,23 +211,41 @@ describe('', function() {
       });
 
       it('Returns all of the links to display on the links page', function(done) {
+        // requestWithSession.session.user = "test";
         var options = {
           'method': 'GET',
           'uri': 'http://127.0.0.1:4568/links'
         };
 
-        requestWithSession(options, function(error, res, body) {
-          expect(body).to.include('"title":"Funny pictures of animals, funny dog pictures"');
-          expect(body).to.include('"code":"' + link.get('code') + '"');
-          done();
+        var loginOptions = {
+          'method': "POST",
+          'uri': 'http://127.0.0.1:4568/login',
+          'username': 'student',
+          'password': 'awesomebullets'
+        };
+
+        Users.create({username: 'student', password: 'awesomebullets'}).then(function(){
+          requestWithSession(loginOptions, function(error, res, body) {
+            requestWithSession(options, function(error, res, body) {
+              expect(body).to.include('"title":"Funny pictures of animals, funny dog pictures"');
+              expect(body).to.include('"code":"' + link.get('code') + '"');
+              done();
         });
+            done();
+          });
+        });
+
+        
+
+
+
       });
 
     }); // 'With previously saved urls'
 
   }); // 'Link creation'
 
-  xdescribe('Privileged Access:', function(){
+  describe('Privileged Access:', function(){
 
     it('Redirects to login page if a user tries to access the main page and is not signed in', function(done) {
       request('http://127.0.0.1:4568/', function(error, res, body) {
@@ -238,7 +270,7 @@ describe('', function() {
 
   }); // 'Priviledged Access'
 
-  xdescribe('Account Creation:', function(){
+  describe('Account Creation:', function(){
 
     it('Signup creates a user record', function(done) {
       var options = {
