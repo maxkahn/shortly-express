@@ -77,25 +77,33 @@ app.post("/login", function(req, res){
   console.log("reached POST login");
   var username = req.body.username;
   var password = req.body.password;
-  //fetch salt out
-  //bcrypt using salt and provided password to get hash
-  //compare hash
-  var salt;
-  
+
+
 
   new User({
-    username: username,
-    password: password
+    username: username
   }).fetch().then(function(found) {
+    console.log(">>>>>>>>>>FOUND",found);
     if (found) {
-      console.log(">>>>>>FOUND USER");
-      req.session.regenerate(function(){
+      bcrypt.compare(password, found.attributes.password, function(err, result){
+        console.log("FOUND PASSWORD", found.attributes.password);
+        if(err){
+          console.log("LOGIN FAILED");
+          throw err;
+        }
+        else if(result){
+          console.log(">>>>>>FOUND USER");
+        req.session.regenerate(function(){
         req.session.user = username;
         req.session.user_id = found.id;
         //TODO: index as placeholder, we'll send user somewhere else
         console.log("user session id",req.session.user_id)
         res.redirect('/');
       });
+        }
+      })
+      
+      
       
     }
     else {
@@ -112,8 +120,9 @@ app.post("/signup", function(req, res){
   var password = req.body.password;
   var salt = bcrypt.genSaltSync(10);
   var hash = bcrypt.hashSync(password, salt);
+  console.log(">>>>>>>>>HASH", hash)
 
-  Users.create({username: username, password: hash, salt: salt}).then(function(){
+  Users.create({username: username, password: hash}).then(function(){
     res.redirect("/login");
   });
 });

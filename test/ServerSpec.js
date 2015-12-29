@@ -247,21 +247,21 @@ describe('', function() {
 
   describe('Privileged Access:', function(){
 
-    it('Redirects to login page if a user tries to access the main page and is not signed in', function(done) {
+    xit('Redirects to login page if a user tries to access the main page and is not signed in', function(done) {
       request('http://127.0.0.1:4568/', function(error, res, body) {
         expect(res.req.path).to.equal('/login');
         done();
       });
     });
 
-    it('Redirects to login page if a user tries to create a link and is not signed in', function(done) {
+    xit('Redirects to login page if a user tries to create a link and is not signed in', function(done) {
       request('http://127.0.0.1:4568/create', function(error, res, body) {
         expect(res.req.path).to.equal('/login');
         done();
       });
     });
 
-    it('Redirects to login page if a user tries to see all of the links and is not signed in', function(done) {
+    xit('Redirects to login page if a user tries to see all of the links and is not signed in', function(done) {
       request('http://127.0.0.1:4568/links', function(error, res, body) {
         expect(res.req.path).to.equal('/login');
         done();
@@ -272,7 +272,7 @@ describe('', function() {
 
   describe('Account Creation:', function(){
 
-    it('Signup creates a user record', function(done) {
+    xit('Signup creates a user record', function(done) {
       var options = {
         'method': 'POST',
         'uri': 'http://127.0.0.1:4568/signup',
@@ -300,7 +300,7 @@ describe('', function() {
       });
     });
 
-    it('Signup logs in a new user', function(done) {
+    xit('Signup logs in a new user', function(done) {
       var options = {
         'method': 'POST',
         'uri': 'http://127.0.0.1:4568/signup',
@@ -318,7 +318,7 @@ describe('', function() {
 
   }); // 'Account Creation'
 
-  xdescribe('Account Login:', function(){
+  describe('Account Login:', function(){
 
     var requestWithSession = request.defaults({jar: true});
 
