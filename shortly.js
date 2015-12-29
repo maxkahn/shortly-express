@@ -51,7 +51,7 @@ app.get('/create', restrict, function(req, res) {
 });
 
 app.get('/links', restrict, function(req, res) {
-  Links.reset().fetch().then(function(links) {
+  Links.reset().query('where', 'user_id', '=', req.session.user_id).fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
@@ -62,8 +62,8 @@ app.get("/login", function(req, res){
 });
 
 app.get("/signup", function(req, res){
-  res.render("signup")
-})
+  res.render("signup");
+});
 
 //Auth Login
 app.post("/login", function(req, res){
@@ -76,10 +76,12 @@ app.post("/login", function(req, res){
     password: password
   }).fetch().then(function(found) {
     if (found) {
-      console.log(">>>>>>FOUND USER")
+      console.log(">>>>>>FOUND USER");
       req.session.regenerate(function(){
         req.session.user = username;
+        req.session.user_id = found.id;
         //TODO: index as placeholder, we'll send user somewhere else
+        console.log("user session id",req.session.user_id)
         res.redirect('/');
       });
       
@@ -124,7 +126,8 @@ function(req, res) {
         Links.create({
           url: uri,
           title: title,
-          base_url: req.headers.origin
+          base_url: req.headers.origin,
+          user_id: parseInt(req.session.user_id)
         })
         .then(function(newLink) {
           res.send(200, newLink);

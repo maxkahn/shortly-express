@@ -4,6 +4,9 @@ var crypto = require('crypto');
 
 var Link = db.Model.extend({
   tableName: 'urls',
+  // user: function(){
+  //   return this.belongsTo(User)
+  // },
   hasTimestamps: true,
   defaults: {
     visits: 0
