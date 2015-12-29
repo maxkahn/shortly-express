@@ -47,6 +47,7 @@ app.get('/', restrict, function(req, res) {
 
 app.get('/create', restrict, function(req, res) {
   res.render('index');
+
 });
 
 app.get('/links', restrict, function(req, res) {
@@ -59,6 +60,10 @@ app.get("/login", function(req, res){
   console.log("reached GET login");
   res.render("login");
 });
+
+app.get("/signup", function(req, res){
+  res.render("signup")
+})
 
 //Auth Login
 app.post("/login", function(req, res){
@@ -84,6 +89,17 @@ app.post("/login", function(req, res){
     }
   });
 
+});
+
+//Auth signup
+app.post("/signup", function(req, res){
+  console.log("reached POST signup");
+  var username = req.body.username;
+  var password = req.body.password;
+
+  Users.create({username: username, password: password}).then(function(){
+    res.redirect("/login");
+  });
 });
 
 app.post('/links', 
