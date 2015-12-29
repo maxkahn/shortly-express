@@ -4,6 +4,7 @@ var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var session = require("express-session");
 var bcrypt = require('bcrypt-nodejs');
+var nodeReq = require("request");
 
 
 var db = require('./app/config');
@@ -21,15 +22,19 @@ app.use(partials());
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
 // Parse forms (signup/login)
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
 app.use(express.static(__dirname + '/public'));
 
 // Auth MiddleWare
-app.use(session({secret: "false"}));
+app.use(session({
+  secret: "false"
+}));
 
-var restrict = function(request, res, next){
-  console.log(">>>>>>>>>> request.session",request.session)
-  if(request.session.user){
+var restrict = function(request, res, next) {
+  console.log(">>>>>>>>>> request.session", request.session)
+  if (request.session.user) {
     // console.log("Session ID: ", request.sessionID);
     console.log(">>>>>>>>>>IN IF BLOCK Restrict");
     next();
@@ -57,56 +62,53 @@ app.get('/links', restrict, function(req, res) {
   });
 });
 
-app.get("/login", function(req, res){
+app.get("/login", function(req, res) {
   console.log("reached GET login");
   res.render("login");
 });
 
-app.get("/logout", function(req, res){
+app.get("/logout", function(req, res) {
   console.log(">>>>>>>>>>LOGGED OFF!!!!!!!!!!!!!");
-  req.session.destroy()
+  req.session.destroy();
   res.render("login");
 });
 
-app.get("/signup", function(req, res){
+app.get("/signup", function(req, res) {
   res.render("signup");
 });
 
 //Auth Login
-app.post("/login", function(req, res){
-  console.log("reached POST login");
-  var username = req.body.username;
-  var password = req.body.password;
+app.post("/login", function(reqt, res) {
+  //req = JSON.parse(req);
+  console.log(">>>>>>>>>>>>>REQ.BODY: ", reqt.body);
+  var username = reqt.body.username;
+  var password = reqt.body.password;
 
 
 
   new User({
     username: username
   }).fetch().then(function(found) {
-    console.log(">>>>>>>>>>FOUND",found);
+    console.log(">>>>>>>>>>FOUND", found);
     if (found) {
-      bcrypt.compare(password, found.attributes.password, function(err, result){
+      bcrypt.compare(password, found.attributes.password, function(err, result) {
         console.log("FOUND PASSWORD", found.attributes.password);
-        if(err){
+        if (err) {
           console.log("LOGIN FAILED");
           throw err;
-        }
-        else if(result){
+        } else if (result) {
           console.log(">>>>>>FOUND USER");
-        req.session.regenerate(function(){
-        req.session.user = username;
-        req.session.user_id = found.id;
-        //TODO: index as placeholder, we'll send user somewhere else
-        console.log("user session id",req.session.user_id)
-        res.redirect('/');
-      });
+          reqt.session.save(function() {
+            reqt.session.user = username;
+            reqt.session.user_id = found.id;
+            console.log(">>>>>>SETTING SESSION: ", reqt.session.user, " - SessionID: ", reqt.session.user_id);
+            //TODO: index as placeholder, we'll send user somewhere else
+            console.log("user session id", reqt.session.user_id);
+            res.redirect('/');
+          });
         }
-      })
-      
-      
-      
-    }
-    else {
+      });
+    } else {
       res.redirect('/login');
     }
   });
@@ -114,7 +116,7 @@ app.post("/login", function(req, res){
 });
 
 //Auth signup
-app.post("/signup", function(req, res){
+app.post("/signup", function(req, res) {
   console.log("reached POST signup");
   var username = req.body.username;
   var password = req.body.password;
@@ -122,43 +124,81 @@ app.post("/signup", function(req, res){
   var hash = bcrypt.hashSync(password, salt);
   console.log(">>>>>>>>>HASH", hash)
 
-  Users.create({username: username, password: hash}).then(function(){
-    res.redirect("/login");
-  });
-});
-
-app.post('/links', 
-function(req, res) {
-  var uri = req.body.url;
-
-  if (!util.isValidUrl(uri)) {
-    console.log('Not a valid url: ', uri);
-    return res.send(404);
-  }
-
-  new Link({ url: uri }).fetch().then(function(found) {
-    if (found) {
-      res.send(200, found.attributes);
-    } else {
-      util.getUrlTitle(uri, function(err, title) {
-        if (err) {
-          console.log('Error reading URL heading: ', err);
-          return res.send(404);
+  Users.create({
+    username: username,
+    password: hash
+  }).then(function() {
+    nodeReq({
+        method: "POST",
+        url: "http://localhost:4568/login",
+        form: {
+          username: username,
+          password: password
         }
+      },
+      function(err, response, body) {
+        if (err) {
+          console.log(err);
+        } else {
+          new User({
+            username: username
+          }).fetch().then(function(found) {
+            console.log(">>>>>>>>>>FOUND", found);
+            if (found) {
+              console.log(">>>>>>FOUND USER");
+              req.session.save(function() {
+                req.session.user = username;
+                req.session.user_id = found.id;
+                console.log(">>>>>>SETTING SESSION: ", req.session.user, " - SessionID: ", req.session.user_id);
+                //TODO: index as placeholder, we'll send user somewhere else
+                console.log("user session id", req.session.user_id);
+                res.redirect('/');
+              });
+            }
+          });
+        }
+      }
+    );
 
-        Links.create({
-          url: uri,
-          title: title,
-          base_url: req.headers.origin,
-          user_id: parseInt(req.session.user_id)
-        })
-        .then(function(newLink) {
-          res.send(200, newLink);
-        });
-      });
-    }
   });
 });
+
+app.post('/links',
+  function(req, res) {
+    var uri = req.body.url;
+
+    if (!util.isValidUrl(uri)) {
+      console.log('Not a valid url: ', uri);
+      return res.send(404);
+    }
+
+    new Link({
+      url: uri
+    }).fetch().then(function(found) {
+      //if found AND current user = that link's creator
+      console.log(">>>//>/>>/>>>>",req.session)
+      if (found && found.attributes.user_id === req.session.user_id) {
+        res.send(200, found.attributes);
+      } else {
+        util.getUrlTitle(uri, function(err, title) {
+          if (err) {
+            console.log('Error reading URL heading: ', err);
+            return res.send(404);
+          }
+
+          Links.create({
+              url: uri,
+              title: title,
+              base_url: req.headers.origin,
+              user_id: parseInt(req.session.user_id)
+            })
+            .then(function(newLink) {
+              res.send(200, newLink);
+            });
+        });
+      }
+    });
+  });
 
 /************************************************************/
 // Write your authentication routes here
@@ -173,7 +213,9 @@ function(req, res) {
 /************************************************************/
 
 app.get('/*', function(req, res) {
-  new Link({ code: req.params[0] }).fetch().then(function(link) {
+  new Link({
+    code: req.params[0]
+  }).fetch().then(function(link) {
     if (!link) {
       res.redirect('/');
     } else {
@@ -182,7 +224,7 @@ app.get('/*', function(req, res) {
       });
 
       click.save().then(function() {
-        link.set('visits', link.get('visits')+1);
+        link.set('visits', link.get('visits') + 1);
         link.save().then(function() {
           return res.redirect(link.get('url'));
         });

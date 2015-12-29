@@ -6,6 +6,7 @@ var Users = require('../app/collections/users');
 var User = require('../app/models/user');
 var Links = require('../app/collections/links');
 var Link = require('../app/models/link');
+// var bcrypt = require("bcrypt")
 
 /************************************************************/
 // Mocha doesn't have a way to designate pending before blocks.
@@ -324,20 +325,21 @@ describe('', function() {
 
     beforeEach(function(done){
       new User({
-          'username': 'Phillip',
-          'password': 'Phillip'
-      }).save().then(function(){
+          'username': 'Phillip3',
+          'password': 'Phillip3'
+      }).create().then(function(){
         done()
       });
     })
 
     it('Logs in existing users', function(done) {
+
       var options = {
         'method': 'POST',
-        'uri': 'http://127.0.0.1:4568/login',
+        'uri': 'http://localhost:4568/login',
         'json': {
-          'username': 'Phillip',
-          'password': 'Phillip'
+          'username': 'Phillip3',
+          'password': 'Phillip3'
         }
       };
 
